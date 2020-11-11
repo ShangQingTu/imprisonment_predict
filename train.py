@@ -17,12 +17,11 @@ from model import AlbertClassifierModel
 from utils import setup_logger, MetricLogger, strip_prefix_if_present
 
 
-def _convert_to_transformer_inputs(query, reply, tokenizer, max_sequence_length, truncation_strategy='longest_first'):
+def _convert_to_transformer_inputs(fact, tokenizer, max_sequence_length, truncation_strategy='longest_first'):
     """
     Converts tokenized input to ids, masks and segments for transformer (including bert)
     :arg
-     - query: 一条 问题
-     - reply: 一条 回答
+     - fact: 一条事实描述
      - tokenizer: 分词器,可以把句子分成词,并把词映射到词表里的id,并且还可以给2个句子拼接成一条数据, 用[SEP]隔开2个句子
      - max_sequence_length: 拼接后句子的最长长度
      - truncation_strategy: 如果句子超过max_sequence_length,截断的策略
@@ -34,7 +33,8 @@ def _convert_to_transformer_inputs(query, reply, tokenizer, max_sequence_length,
        相当于告诉BertModel不要利用后面0的部分
     """
 
-    inputs = tokenizer.encode_plus(query, reply,
+    inputs = tokenizer.encode_plus(fact,
+                                   text_pair=None,
                                    add_special_tokens=True,
                                    max_length=max_sequence_length,
                                    truncation_strategy=truncation_strategy,
@@ -46,9 +46,11 @@ def _convert_to_transformer_inputs(query, reply, tokenizer, max_sequence_length,
     input_segments = inputs["token_type_ids"]
     padding_length = max_sequence_length - len(input_ids)
     padding_id = tokenizer.pad_token_id
-    input_ids = input_ids + ([padding_id] * padding_length)
-    input_masks = input_masks + ([0] * padding_length)
-    input_segments = input_segments + ([0] * padding_length)
+    if padding_length > 0:
+        # 长度不够，需要补齐
+        input_ids = input_ids + ([padding_id] * padding_length)
+        input_masks = input_masks + ([0] * padding_length)
+        input_segments = input_segments + ([0] * padding_length)
 
     return input_ids, input_masks, input_segments
 
@@ -108,7 +110,7 @@ def get_output(df_train):
     return torch.tensor(labels)
 
 
-def train(inputs, outputs, args, logger):
+def train(inputs, outputs, args, tokenizer, logger):
     """
      :param:
      - inputs: (list) 作为输入的tensor, 它是由get_input处理得的
@@ -180,7 +182,7 @@ def train(inputs, outputs, args, logger):
                     )
                 )
         # 验证这个epoch的效果
-        score, thres = validate(inputs, outputs, model, device, args)
+        score, thres = validate(tokenizer, model, device, args)
         logger.info("val")
         logger.info(score)
         logger.info("thres")
@@ -197,7 +199,7 @@ def train(inputs, outputs, args, logger):
                    os.path.join(args.save_dir, 'model_epoch%d_val%.3f.pt' % (epoch_num, score)))
 
 
-def validate(inputs, outputs, model, device, args):
+def validate(tokenizer, model, device, args):
     """
     :param
     - inputs: (list) 作为输入的tensor, 它是由get_input处理得的
@@ -207,6 +209,11 @@ def validate(inputs, outputs, model, device, args):
     - f1: 最好的f1分数
     - t: 要得到最好的f1分数所需设置的threshold值,当模型预测二分类为1的概率prob>threshold时,我们就分类为1
     """
+    test_fin = open(args.js_test_path, "r")
+    lines = test_fin.readlines()
+    test_datas = [json.loads(line) for line in lines]
+    # 处理dict为tensor
+    inputs, outputs = get_inoutput(test_datas, tokenizer, args.max_input_len)
     with torch.no_grad():
         torch_dataset = Data.TensorDataset(inputs[0], inputs[1], inputs[2], outputs)
         # radom choose
@@ -255,15 +262,11 @@ def work(args):
     :return: 训练结束
     """
     tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
-    # train 和 test 从json
+    # train 从json
     train_fin = open(args.js_train_path, "r")
     lines = train_fin.readlines()
     train_datas = [json.loads(line) for line in lines]
-
-    test_fin = open(args.js_test_path, "r")
-    lines = test_fin.readlines()
-    test_datas = [json.loads(line) for line in lines]
-
+    # 处理dict为tensor
     train_inputs, train_outputs = get_inoutput(train_datas, tokenizer, args.max_input_len)
     torch.manual_seed(args.seed)
     random.seed(args.seed)
@@ -281,7 +284,7 @@ def work(args):
     for k, v in vars(args).items():
         logger.info(k + ':' + str(v))
 
-    train(train_inputs, train_outputs, args, logger)
+    train(train_inputs, train_outputs, args, tokenizer, logger)
 
 
 if __name__ == "__main__":
@@ -292,7 +295,7 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained-dir', type=str, default='./albert_chinese_base/')
     # model parameters, see them in `model.py`
     parser.add_argument('--num-topics', type=int, default=1)
-    parser.add_argument('--max-input-len', type=int, default=100)
+    parser.add_argument('--max-input-len', type=int, default=1024)
     parser.add_argument('--out-channels', type=int, default=2)
     parser.add_argument('--kernel-size', type=int, nargs='+', default=[2, 3, 4])
 
