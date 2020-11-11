@@ -134,7 +134,7 @@ def train(inputs, outputs, args, tokenizer, logger):
         optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
     meters = MetricLogger(delimiter="  ")
     # BCEWithLogitsLoss是不需要sigmoid的二分类损失函数
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     # scheduler,在schedule_step的时候,把学习率乘0.1,目前只在第一个step做了这个下降
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, [args.schedule_step], gamma=0.1)
     logger.info('[2] Start training......')
@@ -150,7 +150,7 @@ def train(inputs, outputs, args, tokenizer, logger):
             if label.shape[0] != args.batch_size:
                 logger.info('last dummy batch')
                 break
-            label = label.view(args.batch_size, 1)
+            label = label.view(args.batch_size, -1)
             label = label.to(device).float()
             loss = criterion(pred, label)
 
