@@ -10,6 +10,7 @@ import json
 
 
 def clean_up(lines, sp):
+    max_len = 0
     new_lines = []
     for line in lines:
         dic = json.loads(line)
@@ -23,11 +24,15 @@ def clean_up(lines, sp):
         # if searchObj:
         dic["fact"] = dic["fact"].replace("\r", "")
         dic["fact"] = dic["fact"].replace("\n", "")
+        new_len = len(dic["fact"])
         # 新
         new_line = json.dumps(dic)
         new_line = new_line.encode('utf-8').decode('unicode_escape')
+        if new_len > max_len:
+            max_len = new_len
+            print(dic["fact"])
         new_lines.append(new_line + "\n")
-
+    print("{} dataset has max lenth: {}".format(sp,max_len))
     path = os.path.join(args.data_dir, "new_{}.json".format(sp))
     fout = open(path, "w")
     fout.writelines(new_lines)
@@ -39,9 +44,9 @@ def work(args):
     lines = train_fin.readlines()
     clean_up(lines, "train")
 
-    # test_fin = open(args.js_test_path, "r")
-    # lines = test_fin.readlines()
-    # clean_up(lines, "test")
+    test_fin = open(args.js_test_path, "r")
+    lines = test_fin.readlines()
+    clean_up(lines, "test")
 
 
 if __name__ == "__main__":
