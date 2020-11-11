@@ -198,7 +198,7 @@ def validate(tokenizer, model, device, args):
     """
     test_fin = open(args.js_test_path, "r")
     lines = test_fin.readlines()
-    test_datas = [json.loads(line) for line in lines]
+    test_datas = [json.loads(line, strict=False) for line in lines]
     data_num = len(lines)
     # 处理dict为tensor
     inputs, outputs = get_inoutput(test_datas, tokenizer, args.max_input_len)
@@ -226,7 +226,14 @@ def work(args):
     # train 从json
     train_fin = open(args.js_train_path, "r")
     lines = train_fin.readlines()
-    train_datas = [json.loads(line) for line in lines]
+    train_datas = []
+    # try:
+    train_datas = [json.loads(line, strict=False) for line in lines]
+    # for line in lines:
+    #     print(line)
+    #     train_datas.append(json.loads(line, strict=False))
+    # except Exception:
+    #     print(line)
     # 处理dict为tensor
     train_inputs, train_outputs = get_inoutput(train_datas, tokenizer, args.max_input_len)
     torch.manual_seed(args.seed)
@@ -251,7 +258,7 @@ def work(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # path parameters
-    parser.add_argument('--data-dir', type=str, default='./data/processed')
+    parser.add_argument('--data-dir', type=str, default='./data')
     parser.add_argument('--save-dir', type=str, default='./ckpt')
     parser.add_argument('--pretrained-dir', type=str, default='./albert_chinese_base/')
     # model parameters, see them in `model.py`

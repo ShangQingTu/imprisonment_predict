@@ -19,18 +19,21 @@ def clean_up(lines, sp):
         if term_of_imprisonment > 25:
             dic["meta"]["term_of_imprisonment"]["imprisonment"] = 25
         # 去掉文书里的空白字符
-        # pattern = re.compile("\r")
+        # pattern = re.compile("\".*\"")
         # searchObj = re.search(pattern, dic["fact"])
         # if searchObj:
+        #     print(searchObj.group())
         dic["fact"] = dic["fact"].replace("\r", "")
+        dic["fact"] = dic["fact"].replace("\"", "'")
         dic["fact"] = dic["fact"].replace("\n", "")
+        dic["fact"] = dic["fact"].replace("\\", "")
         new_len = len(dic["fact"])
         # 新
         new_line = json.dumps(dic)
         new_line = new_line.encode('utf-8').decode('unicode_escape')
         if new_len > max_len:
             max_len = new_len
-            print(dic["fact"])
+            # print(dic["fact"])
         new_lines.append(new_line + "\n")
     print("{} dataset has max lenth: {}".format(sp,max_len))
     path = os.path.join(args.data_dir, "new_{}.json".format(sp))
