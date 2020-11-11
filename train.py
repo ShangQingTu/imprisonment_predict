@@ -238,7 +238,7 @@ def work(args):
     :return: 训练结束
     """
     tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
-    df_train = pd.read_csv(args.df_train_path, header=None)
+    df_train = pd.read_csv(args.js_train_path, header=None)
     df_train.columns = ['id', 'id_sub', 'query', 'reply', 'label']
     inputs = get_input(df_train, tokenizer, args.max_input_len)
     outputs = get_output(df_train)
@@ -283,6 +283,6 @@ if __name__ == "__main__":
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--optim', default='adam', choices=['adam', 'adamw', 'sgd'])
     args = parser.parse_args()
-    args.df_train_path = os.path.join(args.data_dir, "train.combine_beike.csv")
-    args.df_test_path = os.path.join(args.data_dir, "test.combine_beike.csv")
+    args.js_train_path = os.path.join(args.data_dir, "trai.json")
+    args.js_test_path = os.path.join(args.data_dir, "test.json")
     work(args)
