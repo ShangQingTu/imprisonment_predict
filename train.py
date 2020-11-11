@@ -10,6 +10,7 @@ import numpy as np
 import shutil
 import os
 import pandas as pd
+import json
 import logging
 from sklearn.metrics import f1_score
 from model import AlbertClassifierModel
@@ -52,10 +53,23 @@ def _convert_to_transformer_inputs(query, reply, tokenizer, max_sequence_length,
     return input_ids, input_masks, input_segments
 
 
-def get_input(df, tokenizer, max_sequence_length):
+def count_imprisonment(term_of_imprisonment):
+    """
+    :param term_of_imprisonment: dict形式
+    :return:罪刑年份,有0~27类
+    """
+    if term_of_imprisonment["death_penalty"]:
+        return 26
+    elif term_of_imprisonment["death_penalty"]:
+        return 27
+    else:
+        return term_of_imprisonment["imprisonment"]
+
+
+def get_inoutput(dicList, tokenizer, max_sequence_length):
     """
     :param
-     - df: 数据集集的dataFrame
+     - dicList: 数据集集的字典 的 列表
      - tokenizer: 分词器
      - max_sequence_length: 拼接后句子的最长长度
     :return:
@@ -65,11 +79,13 @@ def get_input(df, tokenizer, max_sequence_length):
      - input_masks_tensors: (tensor) [数据总数,max_sequence_length]
     """
     token_ids, masks, segments = [], [], []
+    labels = []
     # 每一条数据
-    for i in tqdm(range(len(df))):
-        query = df.iloc[i]['query']
-        reply = df.iloc[i]['reply']
-        input_ids, input_masks, input_segments = _convert_to_transformer_inputs(query, reply, tokenizer,
+    for i in tqdm(range(len(dicList))):
+        dic = dicList[i]
+        term_of_imprisonment = dic["meta"]["term_of_imprisonment"]
+        labels.append(count_imprisonment(term_of_imprisonment))
+        input_ids, input_masks, input_segments = _convert_to_transformer_inputs(dic["fact"], tokenizer,
                                                                                 max_sequence_length)
         token_ids.append(input_ids)
         masks.append(input_masks)
@@ -79,7 +95,7 @@ def get_input(df, tokenizer, max_sequence_length):
     segments_tensors = torch.tensor(segments)
     input_masks_tensors = torch.tensor(masks)
 
-    return [tokens_tensor, segments_tensors, input_masks_tensors]
+    return [tokens_tensor, segments_tensors, input_masks_tensors], torch.tensor(labels)
 
 
 def get_output(df_train):
@@ -87,6 +103,7 @@ def get_output(df_train):
     :param df_train: 训练集的dataFrame
     :return: (tensor) [num_vocab] 数据的标注,只有0和1,1代表这个reply回答了query
     """
+
     labels = df_train['label']
     return torch.tensor(labels)
 
@@ -238,10 +255,16 @@ def work(args):
     :return: 训练结束
     """
     tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
-    df_train = pd.read_csv(args.js_train_path, header=None)
-    df_train.columns = ['id', 'id_sub', 'query', 'reply', 'label']
-    inputs = get_input(df_train, tokenizer, args.max_input_len)
-    outputs = get_output(df_train)
+    # train 和 test 从json
+    train_fin = open(args.js_train_path, "r")
+    lines = train_fin.readlines()
+    train_datas = [json.loads(line) for line in lines]
+
+    test_fin = open(args.js_test_path, "r")
+    lines = test_fin.readlines()
+    test_datas = [json.loads(line) for line in lines]
+
+    train_inputs, train_outputs = get_inoutput(train_datas, tokenizer, args.max_input_len)
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -258,7 +281,7 @@ def work(args):
     for k, v in vars(args).items():
         logger.info(k + ':' + str(v))
 
-    train(inputs, outputs, args, logger)
+    train(train_inputs, train_outputs, args, logger)
 
 
 if __name__ == "__main__":
@@ -283,6 +306,6 @@ if __name__ == "__main__":
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--optim', default='adam', choices=['adam', 'adamw', 'sgd'])
     args = parser.parse_args()
-    args.js_train_path = os.path.join(args.data_dir, "trai.json")
-    args.js_test_path = os.path.join(args.data_dir, "test.json")
+    args.js_train_path = os.path.join(args.data_dir, "new_train.json")
+    args.js_test_path = os.path.join(args.data_dir, "new_test.json")
     work(args)
