@@ -100,16 +100,6 @@ def get_inoutput(dicList, tokenizer, max_sequence_length):
     return [tokens_tensor, segments_tensors, input_masks_tensors], torch.tensor(labels)
 
 
-def get_output(df_train):
-    """
-    :param df_train: 训练集的dataFrame
-    :return: (tensor) [num_vocab] 数据的标注,只有0和1,1代表这个reply回答了query
-    """
-
-    labels = df_train['label']
-    return torch.tensor(labels)
-
-
 def train(inputs, outputs, args, tokenizer, logger):
     """
      :param:
@@ -182,11 +172,9 @@ def train(inputs, outputs, args, tokenizer, logger):
                     )
                 )
         # 验证这个epoch的效果
-        score, thres = validate(tokenizer, model, device, args)
+        score = validate(tokenizer, model, device, args)
         logger.info("val")
         logger.info(score)
-        logger.info("thres")
-        logger.info(thres)
         save = {
             'kwargs': model_kwargs,
             'state_dict': model.state_dict(),
@@ -206,54 +194,27 @@ def validate(tokenizer, model, device, args):
     - outputs: (tensor) 作为标注的tensor, 它是由get_output处理得的
     - args: 一堆训练前规定好的参数
     :return:
-    - f1: 最好的f1分数
-    - t: 要得到最好的f1分数所需设置的threshold值,当模型预测二分类为1的概率prob>threshold时,我们就分类为1
+    - 准确率
     """
     test_fin = open(args.js_test_path, "r")
     lines = test_fin.readlines()
     test_datas = [json.loads(line) for line in lines]
+    data_num = len(lines)
     # 处理dict为tensor
     inputs, outputs = get_inoutput(test_datas, tokenizer, args.max_input_len)
+    outputs = outputs.to(device)
     with torch.no_grad():
         torch_dataset = Data.TensorDataset(inputs[0], inputs[1], inputs[2], outputs)
         # radom choose
         loader = Data.DataLoader(dataset=torch_dataset, batch_size=args.batch_size, shuffle=True)
-        pred_probs = []
-        labels = []
+        # 预测正确的数量
+        right_count = 0
         for batch_iter, (input_ids, segments_tensor, attention_mask, label) in enumerate(loader):
-            # 测2000条来验证这个epoch的效果
-            if batch_iter * args.batch_size > 2000:
-                break
             pred_prob = model(input_ids.to(device), segments_tensor.to(device), attention_mask.to(device))
-            pred_probs.append(pred_prob)
-            labels.append(label.int())
-        df_probs = pd.DataFrame(torch.cat(pred_probs).view(-1).cpu().numpy())
-        df_labels = pd.DataFrame(torch.cat(labels).view(-1).cpu().numpy())
-        f1, t = search_best_f1(df_probs, df_labels)
-    return f1, t
-
-
-def search_best_f1(pred_y, true_y):
-    """
-      :param
-      - pred_y: (dataFrame) 模型对若干条数据,预测的二分类为1的概率组成的列表
-      - true_y: (dataFrame) 这若干条数据实际的二分类标注
-      :return:
-      - best_f1_score: 最好的f1分数
-      - best_thres: 要得到最好的f1分数所需设置的threshold值,当模型预测二分类为1的概率prob>threshold时,我们就分类为1
-      """
-    best_f1_score = 0
-    best_thres = 0
-    for i in range(-70, 70):
-        tres = i / 100
-        y_pred_bin = (pred_y > tres).astype(int)
-        score = f1_score(true_y, y_pred_bin)
-        if score > best_f1_score:
-            best_f1_score = score
-            best_thres = tres
-    print('best_f1_score', best_f1_score)
-    print('best_thres', best_thres)
-    return best_f1_score, best_thres
+            pred_class = torch.argmax(pred_prob, 1)
+            right_count += (pred_class == label).sum()
+        precision = right_count / float(data_num)
+    return precision
 
 
 def work(args):
