@@ -5,7 +5,7 @@ import pickle
 from transformers import BertTokenizer
 from tqdm import tqdm
 import numpy as np
-import shutil
+import random
 import os
 import json
 
@@ -130,11 +130,15 @@ def dump_to_pkl(sp):
     tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
     # train 从json
     if sp == "train":
-        fin = open(args.js_train_path, "r")
+        fin = open(os.path.join(args.data_dir,"new_train.json"), "r")
     else:
-        fin = open(args.js_test_path, "r")
+        fin = open(os.path.join(args.data_dir,"new_test.json"), "r")
 
     lines = fin.readlines()
+    if sp == "train":
+        lines = random.shuffle(lines)[1:50000]
+    else:
+        lines = random.shuffle(lines)[1:10000]
     # try:
     datas = [json.loads(line, strict=False) for line in lines]
     inputs, outputs = get_inoutput(datas, tokenizer, args.max_input_len)
@@ -160,7 +164,7 @@ def work(args):
         test_fin = open(args.js_test_path, "r")
         lines = test_fin.readlines()
         clean_up(lines, "test")
-    print("[1] convert json to tensor, then save it at {}".format(args.pkl_dir))
+    print("[1] convert json to tensor, then save it at {}".format(args.data_dir))
     dump_to_pkl("train")
     print("[2] finish preprocess on  train set")
     dump_to_pkl("test")
@@ -173,6 +177,7 @@ if __name__ == "__main__":
     parser.add_argument('--save-dir', type=str, default='./ckpt')
     parser.add_argument('--pretrained-dir', type=str, default='./albert_chinese_base/')
     # process parameters
+    parser.add_argument('--max-input-len', type=int, default=1024)
     parser.add_argument('--clean_up', action='store_true')
 
     args = parser.parse_args()
