@@ -10,6 +10,7 @@ import numpy as np
 import shutil
 import os
 import pandas as pd
+import pickle
 import json
 import logging
 from sklearn.metrics import f1_score
@@ -17,90 +18,7 @@ from model import AlbertClassifierModel
 from utils import setup_logger, MetricLogger, strip_prefix_if_present
 
 
-def _convert_to_transformer_inputs(fact, tokenizer, max_sequence_length, truncation_strategy='longest_first'):
-    """
-    Converts tokenized input to ids, masks and segments for transformer (including bert)
-    :arg
-     - fact: 一条事实描述
-     - tokenizer: 分词器,可以把句子分成词,并把词映射到词表里的id,并且还可以给2个句子拼接成一条数据, 用[SEP]隔开2个句子
-     - max_sequence_length: 拼接后句子的最长长度
-     - truncation_strategy: 如果句子超过max_sequence_length,截断的策略
-
-    :return
-     - input_ids: 记录句子里每个词对应在词表里的 id
-     - segments: 列表用来指定哪个是第一个句子，哪个是第二个句子，0的部分代表句子一, 1的部分代表句子二
-     - input_masks: 列表中， 1的部分代表句子单词，而后面0的部分代表paddig，只是用于保持输入整齐，没有实际意义。
-       相当于告诉BertModel不要利用后面0的部分
-    """
-
-    inputs = tokenizer.encode_plus(fact,
-                                   text_pair=None,
-                                   add_special_tokens=True,
-                                   max_length=max_sequence_length,
-                                   truncation_strategy=truncation_strategy,
-                                   # truncation=True
-                                   )
-
-    input_ids = inputs["input_ids"]
-    input_masks = [1] * len(input_ids)
-    input_segments = inputs["token_type_ids"]
-    padding_length = max_sequence_length - len(input_ids)
-    padding_id = tokenizer.pad_token_id
-    if padding_length > 0:
-        # 长度不够，需要补齐
-        input_ids = input_ids + ([padding_id] * padding_length)
-        input_masks = input_masks + ([0] * padding_length)
-        input_segments = input_segments + ([0] * padding_length)
-
-    return input_ids, input_masks, input_segments
-
-
-def count_imprisonment(term_of_imprisonment):
-    """
-    :param term_of_imprisonment: dict形式
-    :return:罪刑年份,有0~27类
-    """
-    if term_of_imprisonment["death_penalty"]:
-        return 26
-    elif term_of_imprisonment["death_penalty"]:
-        return 27
-    else:
-        return term_of_imprisonment["imprisonment"]
-
-
-def get_inoutput(dicList, tokenizer, max_sequence_length):
-    """
-    :param
-     - dicList: 数据集集的字典 的 列表
-     - tokenizer: 分词器
-     - max_sequence_length: 拼接后句子的最长长度
-    :return:
-        三个处理好的tensor,形状都是[数据总数,max_sequence_length],它们的含义请看_convert_to_transformer_inputs
-     - tokens_tensor: (tensor) [数据总数,max_sequence_length]
-     - segments_tensors : (tensor) [数据总数,max_sequence_length]
-     - input_masks_tensors: (tensor) [数据总数,max_sequence_length]
-    """
-    token_ids, masks, segments = [], [], []
-    labels = []
-    # 每一条数据
-    for i in tqdm(range(len(dicList))):
-        dic = dicList[i]
-        term_of_imprisonment = dic["meta"]["term_of_imprisonment"]
-        labels.append(count_imprisonment(term_of_imprisonment))
-        input_ids, input_masks, input_segments = _convert_to_transformer_inputs(dic["fact"], tokenizer,
-                                                                                max_sequence_length)
-        token_ids.append(input_ids)
-        masks.append(input_masks)
-        segments.append(input_segments)
-
-    tokens_tensor = torch.tensor(token_ids)
-    segments_tensors = torch.tensor(segments)
-    input_masks_tensors = torch.tensor(masks)
-
-    return [tokens_tensor, segments_tensors, input_masks_tensors], torch.tensor(labels)
-
-
-def train(inputs, outputs, args, tokenizer, logger):
+def train(inputs, outputs, args, logger):
     """
      :param:
      - inputs: (list) 作为输入的tensor, 它是由get_input处理得的
@@ -172,7 +90,7 @@ def train(inputs, outputs, args, tokenizer, logger):
                     )
                 )
         # 验证这个epoch的效果
-        score = validate(tokenizer, model, device, args)
+        score = validate(model, device, args)
         logger.info("val")
         logger.info(score)
         save = {
@@ -187,7 +105,7 @@ def train(inputs, outputs, args, tokenizer, logger):
                    os.path.join(args.save_dir, 'model_epoch%d_val%.3f.pt' % (epoch_num, score)))
 
 
-def validate(tokenizer, model, device, args):
+def validate(model, device, args):
     """
     :param
     - inputs: (list) 作为输入的tensor, 它是由get_input处理得的
@@ -196,13 +114,16 @@ def validate(tokenizer, model, device, args):
     :return:
     - 准确率
     """
-    test_fin = open(args.js_test_path, "r")
-    lines = test_fin.readlines()
-    test_datas = [json.loads(line, strict=False) for line in lines]
-    data_num = len(lines)
+    # test_fin = open(args.js_test_path, "r")
+    # lines = test_fin.readlines()
+    # test_datas = [json.loads(line, strict=False) for line in lines]
     # 处理dict为tensor
-    inputs, outputs = get_inoutput(test_datas, tokenizer, args.max_input_len)
+    # inputs, outputs = get_inoutput(test_datas, tokenizer, args.max_input_len)
+    with open(args.test_data_dir, 'rb') as fin:
+        inputs = pickle.load(fin)
+        outputs = pickle.load(fin)
     outputs = outputs.to(device)
+    data_num = outputs.shape[0]
     with torch.no_grad():
         torch_dataset = Data.TensorDataset(inputs[0], inputs[1], inputs[2], outputs)
         # radom choose
@@ -222,20 +143,16 @@ def work(args):
     :param args: 一堆训练前规定好的参数
     :return: 训练结束
     """
-    tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
-    # train 从json
-    train_fin = open(args.js_train_path, "r")
-    lines = train_fin.readlines()
-    train_datas = []
-    # try:
-    train_datas = [json.loads(line, strict=False) for line in lines]
     # for line in lines:
     #     print(line)
     #     train_datas.append(json.loads(line, strict=False))
     # except Exception:
     #     print(line)
     # 处理dict为tensor
-    train_inputs, train_outputs = get_inoutput(train_datas, tokenizer, args.max_input_len)
+
+    with open(args.train_data_dir, 'rb') as fin:
+        train_inputs = pickle.load(fin)
+        train_outputs = pickle.load(fin)
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -252,7 +169,7 @@ def work(args):
     for k, v in vars(args).items():
         logger.info(k + ':' + str(v))
 
-    train(train_inputs, train_outputs, args, tokenizer, logger)
+    train(train_inputs, train_outputs, args, logger)
 
 
 if __name__ == "__main__":
@@ -279,4 +196,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args.js_train_path = os.path.join(args.data_dir, "new_train.json")
     args.js_test_path = os.path.join(args.data_dir, "new_test.json")
+    args.train_data_dir = os.path.join(args.data_dir, "train.pkl")
+    args.test_data_dir = os.path.join(args.data_dir, "test.pkl")
     work(args)
