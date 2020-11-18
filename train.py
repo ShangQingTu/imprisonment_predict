@@ -28,6 +28,8 @@ def train(inputs, outputs, args, logger):
      :return: 训练结束
      """
     # 创建数据集
+    # inputs[0] (50000,1024)即(data_num,max_input_len)
+    # outputs (50000) 即(data_num)
     torch_dataset = Data.TensorDataset(inputs[0], inputs[1], inputs[2], outputs)
     loader = Data.DataLoader(dataset=torch_dataset, batch_size=args.batch_size, shuffle=True)
     logger.info('[1] Building model')
@@ -62,8 +64,10 @@ def train(inputs, outputs, args, logger):
         for batch_iter, (input_ids, segments_tensor, attention_mask, label) in enumerate(loader):
             progress = epoch_num + batch_iter / example_num
             optimizer.zero_grad()
+            batch_size = args.batch_size
             # 正向传播
-            pred = model(input_ids.to(device), segments_tensor.to(device), attention_mask.to(device))
+            pred = model(input_ids.to(device).view(batch_size, -1),
+                         attention_mask.to(device).view(batch_size, -1))
             # 处理 label
             if label.shape[0] != args.batch_size:
                 logger.info('last dummy batch')
