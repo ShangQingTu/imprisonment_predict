@@ -99,9 +99,9 @@ def clean_up(lines, sp):
     for line in lines:
         dic = json.loads(line)
         term_of_imprisonment = dic["meta"]["term_of_imprisonment"]["imprisonment"]
-        # 有期徒刑最多 25
-        if term_of_imprisonment > 25:
-            dic["meta"]["term_of_imprisonment"]["imprisonment"] = 25
+        # 有期徒刑最多 25 年，即300个月
+        if term_of_imprisonment > 300:
+            dic["meta"]["term_of_imprisonment"]["imprisonment"] = 300
         # 去掉文书里的空白字符
         # pattern = re.compile("\".*\"")
         # searchObj = re.search(pattern, dic["fact"])
@@ -130,15 +130,19 @@ def dump_to_pkl(sp):
     tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
     # train 从json
     if sp == "train":
-        fin = open(os.path.join(args.data_dir,"new_train.json"), "r")
+        fin = open(os.path.join(args.data_dir, "new_train.json"), "r")
     else:
-        fin = open(os.path.join(args.data_dir,"new_test.json"), "r")
+        fin = open(os.path.join(args.data_dir, "new_test.json"), "r")
 
     lines = fin.readlines()
+    random.shuffle(lines)
     if sp == "train":
-        lines = random.shuffle(lines)[1:50000]
+        # 截取到50000条
+        if len(lines) > 50000:
+            lines = lines[:50000]
     else:
-        lines = random.shuffle(lines)[1:10000]
+        if len(lines) > 10000:
+            lines = lines[:10000]
     # try:
     datas = [json.loads(line, strict=False) for line in lines]
     inputs, outputs = get_inoutput(datas, tokenizer, args.max_input_len)
@@ -169,6 +173,7 @@ def work(args):
     print("[2] finish preprocess on  train set")
     dump_to_pkl("test")
     print("[3] finish preprocess on  test set")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
