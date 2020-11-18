@@ -72,8 +72,8 @@ def train(inputs, outputs, args, logger):
             if label.shape[0] != args.batch_size:
                 logger.info('last dummy batch')
                 break
-            label = label.view(args.batch_size, -1)
-            label = label.to(device).float()
+            label = label.view(args.batch_size)
+            label = label.to(device)
             loss = criterion(pred, label)
 
             # 反向传播
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained-dir', type=str, default='./albert_chinese_base/')
     # model parameters, see them in `model.py`
     parser.add_argument('--num-topics', type=int, default=303)
-    parser.add_argument('--max-input-len', type=int, default=1024)
+    parser.add_argument('--max-input-len', type=int, default=500)
     parser.add_argument('--out-channels', type=int, default=2)
     parser.add_argument('--kernel-size', type=int, nargs='+', default=[2, 3, 4])
 
