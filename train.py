@@ -2,7 +2,7 @@
 import torch
 import torch.utils.data as Data
 import argparse
-from transformers import *
+from test import Judger
 from tqdm import tqdm
 from torch import nn, optim
 import random
@@ -97,8 +97,11 @@ def train(inputs, outputs, args, logger):
                 if args.debug:
                     break
         # 验证这个epoch的效果
-        score = validate(model, device, args)
+        precision, score = validate(model, device, args)
         logger.info("val")
+        logger.info("precision")
+        logger.info(precision)
+        logger.info("official score")
         logger.info(score)
         save = {
             'kwargs': model_kwargs,
@@ -130,19 +133,24 @@ def validate(model, device, args):
         inputs = pickle.load(fin)
         outputs = pickle.load(fin)
     outputs = outputs.to(device)
+    batch_size = args.batch_size
     data_num = outputs.shape[0]
+    judger = Judger()
     with torch.no_grad():
         torch_dataset = Data.TensorDataset(inputs[0], inputs[1], inputs[2], outputs)
         # radom choose
-        loader = Data.DataLoader(dataset=torch_dataset, batch_size=args.batch_size, shuffle=True)
+        loader = Data.DataLoader(dataset=torch_dataset, batch_size=batch_size, shuffle=True)
         # 预测正确的数量
         right_count = 0
         for batch_iter, (input_ids, segments_tensor, attention_mask, label) in enumerate(loader):
-            pred_prob = model(input_ids.to(device).view(args.batch_size, -1), attention_mask.to(device).view(args.batch_size, -1))
+            pred_prob = model(input_ids.to(device).view(batch_size, -1),
+                              attention_mask.to(device).view(batch_size, -1))
             pred_class = torch.argmax(pred_prob, 1)
             right_count += (pred_class == label).sum()
+            judger.gen_new_result(label.view(batch_size), pred_class.view(batch_size))
         precision = right_count / float(data_num)
-    return precision
+    official_score = judger.get_score()
+    return precision, official_score
 
 
 def work(args):

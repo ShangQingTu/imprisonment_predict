@@ -126,7 +126,15 @@ CAIL2018数据集在线实验
       RuntimeError: Boolean value of Tensor with more than one value is ambiguous
       ```
 
-    - 
+    - 原来是我的validate里面给model.forward传多了参数，之前改动forward的时候就应该警觉的
+
+GPU加速训练
+
+```
+python train.py --batch_size 32
+```
+
+
 
 ## test
 
