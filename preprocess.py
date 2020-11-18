@@ -51,12 +51,12 @@ def _convert_to_transformer_inputs(fact, tokenizer, max_sequence_length, truncat
 def count_imprisonment(term_of_imprisonment):
     """
     :param term_of_imprisonment: dict形式
-    :return:罪刑年份,有0~27类
+    :return:罪刑月数,有0~302类
     """
     if term_of_imprisonment["death_penalty"]:
-        return 26
+        return 301
     elif term_of_imprisonment["death_penalty"]:
-        return 27
+        return 302
     else:
         return term_of_imprisonment["imprisonment"]
 

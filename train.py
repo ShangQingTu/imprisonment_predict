@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument('--save-dir', type=str, default='./ckpt')
     parser.add_argument('--pretrained-dir', type=str, default='./albert_chinese_base/')
     # model parameters, see them in `model.py`
-    parser.add_argument('--num-topics', type=int, default=1)
+    parser.add_argument('--num-topics', type=int, default=303)
     parser.add_argument('--max-input-len', type=int, default=1024)
     parser.add_argument('--out-channels', type=int, default=2)
     parser.add_argument('--kernel-size', type=int, nargs='+', default=[2, 3, 4])
