@@ -93,10 +93,9 @@ def train(inputs, outputs, args, logger):
                         meters=str(meters),
                     )
                 )
-        # debug模式，先存下来
-        if args.debug:
-            torch.save(save,
-                       os.path.join(args.save_dir, 'model_epoch%d_val_debug.pt' % (epoch_num)))
+                # debug模式，先去valid
+                if args.debug:
+                    break
         # 验证这个epoch的效果
         score = validate(model, device, args)
         logger.info("val")
@@ -139,7 +138,7 @@ def validate(model, device, args):
         # 预测正确的数量
         right_count = 0
         for batch_iter, (input_ids, segments_tensor, attention_mask, label) in enumerate(loader):
-            pred_prob = model(input_ids.to(device), segments_tensor.to(device), attention_mask.to(device))
+            pred_prob = model(input_ids.to(device).view(args.batch_size, -1), attention_mask.to(device).view(args.batch_size, -1))
             pred_class = torch.argmax(pred_prob, 1)
             right_count += (pred_class == label).sum()
         precision = right_count / float(data_num)
