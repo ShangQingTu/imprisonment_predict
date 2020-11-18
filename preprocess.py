@@ -94,6 +94,11 @@ def get_inoutput(dicList, tokenizer, max_sequence_length):
 
 
 def clean_up(lines, sp):
+    """
+    :param lines: 读进来 文档的 所有行
+    :param sp: 表明是哪个集
+    :return: 去掉文书里的空白字符 并 把25年以上的刑期过滤
+    """
     max_len = 0
     new_lines = []
     for line in lines:
@@ -126,6 +131,10 @@ def clean_up(lines, sp):
 
 
 def dump_to_pkl(sp):
+    """
+    :param sp:  表明是哪个集
+    :return: 把 json数据转为tensor并存到pkl里
+    """
     print("save {} dataset to pkl".format(sp))
     tokenizer = BertTokenizer.from_pretrained(args.pretrained_dir)
     # train 从json

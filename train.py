@@ -21,8 +21,8 @@ from utils import setup_logger, MetricLogger, strip_prefix_if_present
 def train(inputs, outputs, args, logger):
     """
      :param:
-     - inputs: (list) 作为输入的tensor, 它是由get_input处理得的
-     - outputs: (tensor) 作为标注的tensor, 它是由get_output处理得的
+     - inputs: (list) 作为输入的tensor, 它是由preprocess.py处理得的
+     - outputs: (tensor) 作为标注的tensor, 它是由preprocess.py处理得的
      - args: 一堆训练前规定好的参数
      - logger: 训练日志,可以把训练过程记录在./ckpt/log.txt
      :return: 训练结束
@@ -118,17 +118,13 @@ def train(inputs, outputs, args, logger):
 def validate(model, device, args):
     """
     :param
-    - inputs: (list) 作为输入的tensor, 它是由get_input处理得的
-    - outputs: (tensor) 作为标注的tensor, 它是由get_output处理得的
+    - inputs: (list) 作为输入的tensor, 它是由preprocess.py处理得的
+    - outputs: (tensor) 作为标注的tensor, 它是由preprocess.py处理得的
     - args: 一堆训练前规定好的参数
     :return:
-    - 准确率
+    - 准确率 和 法院预测刑期任务的分数
     """
-    # test_fin = open(args.js_test_path, "r")
-    # lines = test_fin.readlines()
-    # test_datas = [json.loads(line, strict=False) for line in lines]
-    # 处理dict为tensor
-    # inputs, outputs = get_inoutput(test_datas, tokenizer, args.max_input_len)
+
     with open(args.test_data_dir, 'rb') as fin:
         inputs = pickle.load(fin)
         outputs = pickle.load(fin)

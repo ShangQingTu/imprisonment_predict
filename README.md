@@ -131,7 +131,7 @@ CAIL2018数据集在线实验
 GPU加速训练
 
 ```
-python train.py --batch_size 32
+python train.py --batch_size 8
 ```
 
 
@@ -140,7 +140,13 @@ python train.py --batch_size 32
 
 需要根据官网给的公式来计算
 
-TODO
+上传一下
+
+```
+scp /home/tsq/PycharmProjects/learnCNN/imprisonment_predict/data/*.pkl root@117.51.142.31:/root/imprisonment_predict/data
+
+scp /home/tsq/PycharmProjects/learnCNN/imprisonment_predict/*.py root@117.51.142.31:/root/imprisonment_predict
+```
 
 最后要改下注释
 

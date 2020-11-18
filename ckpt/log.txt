@@ -1,24 +1,25 @@
-2020-11-18 15:59:47,573 Classify INFO: data_dir:./data
-2020-11-18 15:59:47,573 Classify INFO: save_dir:./ckpt
-2020-11-18 15:59:47,573 Classify INFO: pretrained_dir:./albert_chinese_base/
-2020-11-18 15:59:47,574 Classify INFO: num_topics:303
-2020-11-18 15:59:47,574 Classify INFO: max_input_len:1024
-2020-11-18 15:59:47,574 Classify INFO: out_channels:2
-2020-11-18 15:59:47,574 Classify INFO: kernel_size:[2, 3, 4]
-2020-11-18 15:59:47,574 Classify INFO: max_epoch:5
-2020-11-18 15:59:47,574 Classify INFO: batch_size:2
-2020-11-18 15:59:47,574 Classify INFO: lr:0.0001
-2020-11-18 15:59:47,574 Classify INFO: schedule_step:1
-2020-11-18 15:59:47,574 Classify INFO: weight_decay:1e-06
-2020-11-18 15:59:47,575 Classify INFO: seed:666666
-2020-11-18 15:59:47,575 Classify INFO: dropout:0.3
-2020-11-18 15:59:47,575 Classify INFO: optim:adam
-2020-11-18 15:59:47,575 Classify INFO: js_train_path:./data/new_train.json
-2020-11-18 15:59:47,575 Classify INFO: js_test_path:./data/new_test.json
-2020-11-18 15:59:47,575 Classify INFO: train_data_dir:./data/train.pkl
-2020-11-18 15:59:47,575 Classify INFO: test_data_dir:./data/test.pkl
-2020-11-18 15:59:47,582 Classify INFO: [1] Building model
-2020-11-18 15:59:47,948 Classify INFO: AlbertClassifierModel(
+2020-11-18 20:58:58,200 Classify INFO: debug:True
+2020-11-18 20:58:58,201 Classify INFO: data_dir:./data
+2020-11-18 20:58:58,201 Classify INFO: save_dir:./ckpt
+2020-11-18 20:58:58,201 Classify INFO: pretrained_dir:./albert_chinese_base/
+2020-11-18 20:58:58,201 Classify INFO: num_topics:303
+2020-11-18 20:58:58,201 Classify INFO: max_input_len:500
+2020-11-18 20:58:58,201 Classify INFO: out_channels:2
+2020-11-18 20:58:58,201 Classify INFO: kernel_size:[2, 3, 4]
+2020-11-18 20:58:58,201 Classify INFO: max_epoch:5
+2020-11-18 20:58:58,202 Classify INFO: batch_size:2
+2020-11-18 20:58:58,202 Classify INFO: lr:0.0001
+2020-11-18 20:58:58,202 Classify INFO: schedule_step:1
+2020-11-18 20:58:58,202 Classify INFO: weight_decay:1e-06
+2020-11-18 20:58:58,202 Classify INFO: seed:666666
+2020-11-18 20:58:58,202 Classify INFO: dropout:0.3
+2020-11-18 20:58:58,202 Classify INFO: optim:adam
+2020-11-18 20:58:58,202 Classify INFO: js_train_path:./data/new_train.json
+2020-11-18 20:58:58,203 Classify INFO: js_test_path:./data/new_test.json
+2020-11-18 20:58:58,203 Classify INFO: train_data_dir:./data/train.pkl
+2020-11-18 20:58:58,203 Classify INFO: test_data_dir:./data/test.pkl
+2020-11-18 20:58:58,203 Classify INFO: [1] Building model
+2020-11-18 20:58:58,557 Classify INFO: AlbertClassifierModel(
   (albert_model): AlbertModel(
     (embeddings): AlbertEmbeddings(
       (word_embeddings): Embedding(21128, 128, padding_idx=0)
@@ -56,21 +57,21 @@
     (0): Sequential(
       (0): Conv1d(768, 2, kernel_size=(2,), stride=(1,))
       (1): LeakyReLU(negative_slope=0.01)
-      (2): MaxPool1d(kernel_size=1023, stride=1023, padding=0, dilation=1, ceil_mode=False)
+      (2): MaxPool1d(kernel_size=499, stride=499, padding=0, dilation=1, ceil_mode=False)
     )
     (1): Sequential(
       (0): Conv1d(768, 2, kernel_size=(3,), stride=(1,))
       (1): LeakyReLU(negative_slope=0.01)
-      (2): MaxPool1d(kernel_size=1022, stride=1022, padding=0, dilation=1, ceil_mode=False)
+      (2): MaxPool1d(kernel_size=498, stride=498, padding=0, dilation=1, ceil_mode=False)
     )
     (2): Sequential(
       (0): Conv1d(768, 2, kernel_size=(4,), stride=(1,))
       (1): LeakyReLU(negative_slope=0.01)
-      (2): MaxPool1d(kernel_size=1021, stride=1021, padding=0, dilation=1, ceil_mode=False)
+      (2): MaxPool1d(kernel_size=497, stride=497, padding=0, dilation=1, ceil_mode=False)
     )
   )
   (fc_layer1): Linear(in_features=774, out_features=774, bias=True)
   (fc_layer2): Linear(in_features=774, out_features=303, bias=True)
   (dropout): Dropout(p=0.3, inplace=False)
 )
-2020-11-18 15:59:47,951 Classify INFO: [2] Start training......
+2020-11-18 20:58:58,559 Classify INFO: [2] Start training......
