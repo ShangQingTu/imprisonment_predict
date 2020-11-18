@@ -48,11 +48,10 @@ class AlbertClassifierModel(nn.Module):
         self.fc_layer2 = nn.Linear(dim_h, self.ntopic)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, input_ids, segment_ids, attention_mask, use_cls=True):
+    def forward(self, input_ids, attention_mask, use_cls=True):
         """
         :param
            - input_ids: 记录句子里每个词对应在词表里的 id
-           - segments: 列表用来指定哪个是第一个句子，哪个是第二个句子，0的部分代表句子一, 1的部分代表句子二
            - input_masks: 列表中， 1的部分代表句子单词，而后面0的部分代表paddig，只是用于保持输入整齐，没有实际意义。
            相当于告诉BertModel不要利用后面0的部分
            - use_cls: 是否使用albert的cls特征向量
@@ -61,8 +60,7 @@ class AlbertClassifierModel(nn.Module):
         """
         if (use_cls):
             all_hidden = self.albert_model(input_ids=input_ids,
-                                           attention_mask=attention_mask,
-                                           token_type_ids=segment_ids)[0]
+                                           attention_mask=attention_mask)[0]
 
             cls_hidden = all_hidden[:, 0, :]
             embed_x = all_hidden.permute(0, 2, 1)  # 将矩阵转置
