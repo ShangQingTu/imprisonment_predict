@@ -93,6 +93,10 @@ def train(inputs, outputs, args, logger):
                         meters=str(meters),
                     )
                 )
+        # debug模式，先存下来
+        if args.debug:
+            torch.save(save,
+                       os.path.join(args.save_dir, 'model_epoch%d_val_debug.pt' % (epoch_num)))
         # 验证这个epoch的效果
         score = validate(model, device, args)
         logger.info("val")
@@ -178,6 +182,9 @@ def work(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    # debug mode
+    parser.add_argument('--debug', action='store_true')
+
     # path parameters
     parser.add_argument('--data-dir', type=str, default='./data')
     parser.add_argument('--save-dir', type=str, default='./ckpt')
