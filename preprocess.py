@@ -182,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('--save-dir', type=str, default='./ckpt')
     parser.add_argument('--pretrained-dir', type=str, default='./albert_chinese_base/')
     # process parameters
-    parser.add_argument('--max-input-len', type=int, default=1024)
+    parser.add_argument('--max-input-len', type=int, default=500)
     parser.add_argument('--clean_up', action='store_true')
 
     args = parser.parse_args()
