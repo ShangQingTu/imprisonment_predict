@@ -71,7 +71,7 @@ class AlbertClassifierModel(nn.Module):
             y = self.fc_layer2(y)
         else:
             all_hidden = self.albert_model(input_ids=input_ids,
-                                           token_type_ids=segment_ids, attention_mask=attention_mask)[0]
+                                           attention_mask=attention_mask)[0]
             embed_x = all_hidden.permute(0, 2, 1)  # 将矩阵转置
             mean_hidden = torch.mean(all_hidden, dim=1, keepdim=False)
             out = [conv(embed_x) for conv in self.convs]  # 计算每层卷积的结果，这里输出的结果已经经过池化层处理了，对应着图中的6 个univariate vectors
