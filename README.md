@@ -148,9 +148,17 @@ scp /home/tsq/PycharmProjects/learnCNN/imprisonment_predict/data/*.pkl root@117.
 scp /home/tsq/PycharmProjects/learnCNN/imprisonment_predict/*.py root@117.51.142.31:/root/imprisonment_predict
 ```
 
-最后要改下注释
+### 训练好了
 
-TODO
+最高得分是0.636,榜单的最高分是0.798，但是我只用了50000条数据作为训练集，不知道把200多万数据全部用上会怎么样，不过由于财力有限，也没法都用上了。
+
+下载一下
+
+```
+scp  root@117.51.142.31:/root/imprisonment_predict/ckpt/model_epoch3_val0.636.pt /home/tsq/PycharmProjects/learnCNN/imprisonment_predict/ckpt/
+```
+
+
 
 ## 疑惑
 
